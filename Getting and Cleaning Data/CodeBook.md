@@ -1,10 +1,10 @@
 ## Codebook for averageStats.txt
 
-Please note that all variables originate from the raw Samsung_Data dataset; some original descriptions of the Activity variable and all quantitative variables can be found in [activity_labels.txt](./Samsung_Data/UCI HAR Dataset/activity_labels.txt) and [features_info.txt](./Samsung_Data/UCI HAR Dataset/features_info.txt), respectively.
+Please note that all variables originate from the raw Samsung_Data dataset; some original descriptions of the Activity variable and all quantitative variables can be found in "activity_labels.txt" and "features_info.txt", repsectively, within the [Samsung_Data zipped folder](./Samsung_Data.zip)
 
 All quantitative variables are averages of that measurement for a particular Activity-Subject combination. For example, the "tBodyAcc.mean...X" for Activity = 1 and Subject = 1 is the average value of tBodyAcc.mean...X over all observations where Suject 1 was WALKING. 
 
-Descriptions of how raw data was derived can be found in [features_info.txt](./Samsung_Data/UCI HAR Dataset/features_info.txt). More generally, most variables were measured every direction (X,Y,Z); hence, each of these variables is described compactly (e.g. tBodyAcc.mean...XYZ describes 3 measurements: tBodyAcc.mean...X, tBodyAcc.mean...Y, tbodyAcc.mean...Z). 
+Descriptions of how raw data was derived can be found in "features_info.txt" within [Samsung_Data](./Samsung_Data.zip). More generally, most variables were measured every direction (X,Y,Z); hence, each of these variables is described compactly (e.g. tBodyAcc.mean...XYZ describes 3 measurements: tBodyAcc.mean...X, tBodyAcc.mean...Y, tbodyAcc.mean...Z). 
 
 Some quantitative variable name also indicate the variable estimated from instrument signals:
 
