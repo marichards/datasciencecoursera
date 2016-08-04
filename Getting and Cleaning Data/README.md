@@ -24,7 +24,11 @@ To read the "averageStats.csv" file back into R as a data frame, simply use the 
 
 `data <- read.table("./averageStats.txt")`
 
+Source: https://thoughtfulbloke.wordpress.com/2015/09/09/getting-and-cleaning-the-assignment/
+
 The resulting data frame contains 180 observations (6 activities x 30 subjects) across 68 variables (Activity, Subject, and 66 mean/standard deviation measurements from the raw dataset)
+
+
 
 ## Interpreting the run_analysis.R File
 
