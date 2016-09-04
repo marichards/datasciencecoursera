@@ -6,7 +6,7 @@ This directory contains the following files:
 
 - 'run_analysis.R': Script that downloads and tidys the data in [Samsung_Dataset](./Samsung_Dataset.zip). It takes the following steps (in order):
  1. Downloads and reads in the raw dataset from the provided URL
- 2. During the read in process, names the variables in the training and test datasets using the names provided in [features.txt](./Samsung_Dataset/UCI Har Dataset/features.txt) 
+ 2. During the read in process, names the variables in the training and test datasets using the names provided in [features.txt](./Samsung_Dataset.zip/UCI Har Dataset/features.txt) 
  3. Merges the training and test datasets to create one dataset 
  4. Selects only those dataset columns that correspond to the means and standard deviations for measured variables
  5. Adds descriptive activity and subject labels to each observation 
