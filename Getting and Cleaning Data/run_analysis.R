@@ -87,4 +87,4 @@ meltedData <- melt(fullMeansStds,id = c("Activity","Subject"))
 ## Use dcast to find the mean of each variable for Activity and Subject combination
 newDataset <- dcast(meltedData,Activity+Subject ~ variable,mean)
 ## Finally, print it to a file
-write.table(newDataset, file = "./averageStats.txt")
+write.table(newDataset, file = "./averageStats.txt", row.name=FALSE)
