@@ -1,0 +1,61 @@
+---
+output: html_document
+---
+Activity Tracker Data Analysis
+========================================================
+
+## Reading the data
+
+Activity tracker data is interesting! Let's load and analyze the dataset provided for this assignment, which is stored locally as *"activity.csv"*. We'll use the *read.csv()* function to read in the data and store it in the cache so it doesn't need to be repeatedly reloaded. And while we're at it, let's make a summary of the data to see what's there.
+
+```{r cache = TRUE}
+activity_data <- read.csv("./activity.csv")
+summary(activity_data)
+```
+
+Alright, so based on our summary we see that there are a fair number of "NA" values in our *steps* variable; this might come up a fair amount going forward. The data appear to be in a pretty usable format, so having noted that, let's move on to some more analyses. 
+
+## Steps Per Day
+
+A natural starting point in this dataset is to ask how many steps were taken each day. Let's create a histogram to show this. The first thing we need to do is sum each day's steps so that we have one value per day. We can use *tapply()* to accomplish this, and then we'll plot the resulting totals using *hist()*.
+
+```{r}
+totals <- tapply(activity_data$steps,activity_data$date,sum,na.rm=TRUE)
+hist(totals,breaks = 20,col="steelblue",xlab = "Total Steps",
+     main = "Total Steps per Day")
+```
+
+At first glance, this looks a little odd in that there are 10 days with only 0-1000 steps; however, upon looking at the raw dataset, this seems to be correct. For instance, the first day ("2012-10-01") does not have any steps recorded and the second day ("2012-10-02") has only a couple hundred. So even though this looks strange at first, it certainly seems to correspond to the data. 
+
+We've looked at the distribution of steps, but how about the center of the distribution? We can calculate the mean and median straightforwardly by using the appropriate functions, *mean()* and *median()*.  
+
+```{r}
+mean(totals)
+median(totals)
+```
+
+We see based on these outputs that both values are around 10,000. To better understand them, let's plot them on our histogram
+
+```{r}
+totals <- tapply(activity_data$steps,activity_data$date,sum,na.rm=TRUE)
+hist(totals,breaks = 20,col="steelblue",xlab = "Total Steps",
+     main = "Total Steps per Day w/Mean and Median")
+abline(v = mean(totals),col = 'green',lwd = 2)
+abline(v = median(totals),col = 'red',lwd = 2)
+legend("topright",col = c('green','red'), legend = c('Mean','Median'),
+       lty = 1, lwd = 2)
+```
+
+As we expected, these two lines both appear in the vicinity of 10,000 steps. Now that we've characterized the steps for each day, let's take a look at this individual's average day and see what we can say about them.
+
+## Average Daily Activity
+
+Now instead of looking at day to day steps, let's see what happens if we consider our "average" day. The average day is defined by 5 minute time intervals, ranging from 0 to 2355 as shown by our previous summary. So let's use tapply to find the mean of the steps in each interval.
+
+```{r}
+daily <- tapply(activity_data$steps,activity_data$interval,mean,na.rm=TRUE)
+```
+
+We can now use these mean values along with their labels to plot a time series plot of steps against time interval.
+```{r}
+plot(d)
