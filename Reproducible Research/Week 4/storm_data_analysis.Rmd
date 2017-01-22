@@ -1,0 +1,152 @@
+---
+title: "Storm Data Analysis"
+author: "Matthew Richards"
+date: "October 30, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+In this brief analysis, we delve into the "Storm Data" dataset, a collection of information about major storms and weather events in the United States. During this analysis, we load the data into a data frame, then examine which weather event types caused the most harm to people (in the form of injuries and fatalities) and to property (in the form of property damage). We find that tornadoes, while not necessarily the most harmful to humans on average, have the greatest propensity for causing injuries and/or fatalities and can therefore be considered the greatest risk for causing bodily harm. Although tornadoes also cause the most total damage to property, the greatest risk for property damage comes from flooding, wind, and winter storm events, all of which are reasonably common and cause more average property damage than do tornadoes.
+
+## Data Processing
+
+Let's start by reading the data straight from the .bz2 file using the *bzfile()* command in concert with the *read.csv()* command. We know it's going to be a pretty big dataset, so we'll set *cache = TRUE* to store it in the cache:
+
+```{r cache= TRUE}
+storms <- read.csv(bzfile("repdata%2Fdata%2FStormData.csv.bz2"))
+```
+
+At this point, it's pertinent to explore the data a bit to see what we're working with. First, let's look at the dimensions.
+
+```{r cache= TRUE}
+dim(storms)
+```
+
+That's a lot of observations, about 900,000 observations here, and 37 variables. We can look a little more closely at the data using the *str()* commmand:
+
+```{r cache= TRUE}
+str(storms)
+```
+
+This reveals a couple of useful bits of information. First, the event type (EVTYPE) is a factor variable with 985 different levels; this is a pretty large number of different factor levels, particularly if we try to make a plot later. We can also see that our three outcomes of interest--INJURIES, FATALITIES, PROPDMG--are all coded as numeric arrays, which is probably where we want them. 
+
+Let's go ahead and create a subset of the "storms" data with just the information we want. We'll save the event type, injuries, fatalities, and property damage, but we'll combine the injuries and fatalities to form "harmful incidents", a measure of how much bodily harm was caused by a weather event. 
+
+```{r cache= TRUE}
+sub_storms <- data.frame(EVTYPE = storms$EVTYPE,HARM = storms$INJURIES + storms$FATALITIES, PROPDMG = storms$PROPDMG)
+```
+
+Now that we have our smaller data frame, it would be a good idea to get a feel for what storm events occur most often; we'll pull out a top 20
+
+```{r cache= TRUE}
+head(sort(table(sub_storms$EVTYPE),TRUE),20)
+```
+
+Alright, so hail  and "tstm wind" occur most often, much more often than any other events, and there's a clear dropoff near the end of the top 20 as well. Now that we've looked at these simple metrics, it's time to dive in and see which events caused the most harm to people and to property. 
+
+## Results
+
+###Assessing Harmful Events
+
+Using our new smaller data frame, let's summarize the harmful events using R's *summary()* function:
+
+```{r cache= TRUE}
+summary(sub_storms$HARM)
+```
+
+Here we see a tricky aspect of the data; most events, up through the 3rd quantile, have 0 injuries + fatalities, whereas the maximum number is over 1,700. We can see that most storms don't cause any personal harm, at least by these two measures. However, the question is regarding the most harmful storms, so let's zoom in on those. 
+
+First, let's look at which storms caused the largest number of harmful events by sorting our data using the *plyr* package. We'll use *head()* to look at the top 20 events. 
+
+```{r cache= TRUE}
+library(plyr)
+head(arrange(sub_storms,desc(HARM)),20)
+```
+
+Based upon this output, it looks like most of the events at the top end are tornadoes; however, this doesn't tell us about which events are most harmful on average. It's quite possible that even though these particular tornadoes were very harmful, there are plenty of tornadoes that cause no harm at all. Let's see if we can learn more by looking at which storms, on average, were most harmful. We'll do this by using *tapply()* to find the mean harm caused by each event and then look at the sorted output using *head()* along with *sort()*. 
+
+```{r cache= TRUE}
+means <- tapply(sub_storms$HARM,sub_storms$EVTYPE,mean,na.rm = TRUE)
+head(sort(means,TRUE),20)
+```
+
+We can see the 20 most harmful types of storms, at least by average, and it looks like "Heat Wave" has the highest mean of harmful incidents. We can get a graphical look at the top storms too; let's look at just the top 10 most harmful on average, just to make sure the plot stays easy to interpret. We'll use the names of the top 10 storms to subset our *sub_storms* data, then input this subset into the plotting command. 
+
+```{r cache= TRUE}
+library(ggplot2)
+top_storms <- names(sort(means,TRUE))[1:10]
+top_10 <- subset(sub_storms, EVTYPE %in% top_storms)
+g <- ggplot(top_10,aes(x = EVTYPE, y =HARM)) + geom_boxplot()
+g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+As the plot shows, there aren't actually many events going into most of these means and the majority appear to have just a single event. So while we may take away the fact that these are the storms that are most harmful on average, it would be useful to look at which storms are most harmful in total. To do that, let's sum the number of harmful incidents across each storm type and take a look at the top 20 as before. 
+
+```{r cache= TRUE}
+sums <- tapply(sub_storms$HARM,sub_storms$EVTYPE,sum,na.rm = TRUE)
+head(sort(sums,TRUE),20)
+```
+
+Now we have a very different picture than we did with the averages; we can immediately see that even though tornadoes were not among the top 20 in averge harmful incidents (they were actually #50), they cause the highest total number of harmful incidents by over an order of magnitude. Clearly, tornados kill or injure far more people each year than any of the other events. In fact, if we add the rest of the harmful incidents together, we get a far smaller number than the tornado sum on its own:
+
+```{r cache= TRUE}
+sum(sort(sums,TRUE)[-1])
+
+```
+
+By themselves, tornadoes account for nearly twice as many harmful incidents as the rest of the events combined. Putting this together with the averages we examined previously, the data suggest that although individual tornadoes have caused a great deal of harm, the average tornado is not the most harmful storm; rather, heat waves have the highest average number of total injuries plus fatalities. However, tornados harm more people than all of the other storms combined. Thus, while a tornado is unlikely to harm many people, the sheer number of tornado events and handful of very harmful tornadoes mean that they are still the most likely event to cause injuries and fatalities.  
+
+### Assessing Economically-Impactful Events
+
+Turning now to economics, we will use our shortened data set to look at property damage. First, let's look at a summary:
+
+```{r cache= TRUE}
+summary(sub_storms$PROPDMG)
+```
+
+Similar to the harmful events, the property damage values are mostly 0 and appear to be skewed by some high values at the top; what are the events causing these high values?
+
+```{r cache= TRUE}
+head(arrange(sub_storms,desc(PROPDMG)),20)
+```
+
+We see a variety here, with a bunch of flash floods, some thunderstorm/wind events, and a few others. It's worth noting that there are only 12 events over the threshold of 1000, and 6 of those 12 are either flash floods or thunderstorm/wind (3 apiece). As we did with harmful events, let us calculate the highest average property damages and also the highest total damages using tapply(). First let us examine the mean values:
+
+```{r cache= TRUE}
+means <- tapply(sub_storms$PROPDMG,sub_storms$EVTYPE,mean,na.rm = TRUE)
+head(sort(means,TRUE),20)
+```
+
+Before making any sort of plot, let's do the same for the sums: 
+
+```{r cache= TRUE}
+sums <- tapply(sub_storms$PROPDMG,sub_storms$EVTYPE,sum,na.rm = TRUE)
+head(sort(sums,TRUE),20)
+```
+
+Comparing the two lists, we actually see a fair amount of crossover, with a fair number of the highest events being related to floods, winds, and severe winter weather. Once again, tornadoes show up as having the highest cumulative property damage, but are nowhere near the top of the highest averages. We can probably chalk this up, once again, to tornadoes being a particularly common event.
+
+Rather than looking at the means themselves, let's again construct a box plot to see if we can learn a bit more about the spread of our data.  
+
+```{r cache= TRUE}
+top_storms <- names(sort(means,TRUE))[1:10]
+top_10 <- subset(sub_storms, EVTYPE %in% top_storms)
+g <- ggplot(top_10,aes(x = EVTYPE, y =PROPDMG)) + geom_boxplot()
+g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Much like before, the top average amounts of damage are associated with rare events; the exception here are river and stream floods, which have multiple occurrences and cause a lot of property damage. Let's now plot our sums, which we just examined above. This time, we don't expect one particular term to dominate the plot, so it may be more informative than a plot of the total harmful events.
+
+```{r cache= TRUE}
+top_storms <- names(sort(sums,TRUE))[1:10]
+top_10 <- subset(sub_storms, EVTYPE %in% top_storms)
+g <- ggplot(top_10,aes(x = EVTYPE, y =PROPDMG)) + geom_bar(stat = "identity")
+g + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Although tornadoes still cause the most total property damage, they do not outstrip the other events by a massive amount. Thus, as we summarize this portion of the analysis, our briefly exploration of the data seem to suggest that floods, wind-related events, and winter storms post the greatest danger for inflicting property damage. 
