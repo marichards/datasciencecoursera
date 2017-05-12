@@ -1,0 +1,113 @@
+---
+title: "Exercise Prediction"
+author: "Matthew Richards"
+date: "December 4, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Executive summary
+
+The goal of this project was to build a model that predicts the manner in which participants performed barbell exercises. The training data were separated into a training and a validation set, then multiple models were created on the training set and tested on the validation set. The final model selected was a random forest approach, which achieved 99.5% accuracy on the validation set.
+
+## Exploratory Data Analysis and Preprocessing
+
+First things first, let us load the data so we can explore them and get an idea for what sort of machine learning algorithm might work well
+
+```{r cache=TRUE}
+training <- read.csv("./pml-training.csv")
+testing <- read.csv("./pml-testing.csv")
+dim(training); dim(testing)
+```
+
+There are just under 20,000 training points and only 20 testing points; also of note, there are 160 variables to consider here. The outcome we're interested in is *classe*, the measure of how an exercise was performed. We can look at the breakdown of this variable in our training set:
+
+```{r}
+table(training$classe)
+```
+
+The class is a letter from A-E, with a pretty similar number in all categories but A, which has the highest number. One vital thing we should check is what our data actually look like; we will do so using the *summary* function on the data (see Appendix for output on testing data). Doing so, we see that many variables have the value "NA", a blank space, or something else meaningless for over 19,000 of the values. A similar case is found for the testing data (see Appendix). These variables likely won't be useful, so let's start pre-processing by removing from both data sets anything that is missing from all the testing observations. 
+
+```{r cache=TRUE}
+trainMod <- training[,!colSums(is.na(testing)) > 19]
+testMod <- testing[,!colSums(is.na(testing)) > 19]
+```
+
+This leaves us with a much smaller dataset. We also saw in the *summary* function that some of the first handful of columns also contain data that will likely not be as useful (e.g. obsevation number, time stamps, user name). Let's remove these as well, then check our dimensions:
+
+```{r cache=TRUE}
+trainFinal <- trainMod[,-c(1:7)]
+testFinal <- testMod[,-c(1:7)]
+dim(trainFinal);dim(testFinal)
+```
+
+Looks like we're left with 53 variables, one of which is *classe* in the training data. We're going to put the testing data to the side now and leave it for later. Moving forward, let's take our final training data and partition it into training and validation data for the rest of this report. We'll take a 70/30 split and we'll set the seed so this is all reproducible. 
+
+```{r cache=TRUE}
+set.seed(10110)
+inTrain <- createDataPartition(y=trainFinal$classe,p=0.7,list=FALSE)
+training <- trainFinal[inTrain,]
+validation <- trainFinal[-inTrain,]
+dim(training);dim(validation)
+```
+
+Now, we have a set of about 14,000 observations to train on and 5,000 to validate on; we'll set the validation set aside for the moment and move forward with the training set. The validation set will come in once we've trained each model, allowing us to estimate out of sample error. 
+
+## Model Training and Validation
+
+The outcome we're predicting is non-numeric and requires classification rather than numerical regression, so let's start with trees. We can start with a simple tree, which should be more interpretable than something more complicated. 
+
+``` {r cache = TRUE}
+suppressWarnings(library(caret))
+treeFit <- train(classe~.,method="rpart",data = training)
+confusionMatrix(validation$classe,predict(treeFit,validation))
+```
+
+We don't to particularly well here; it's predicted to have about a 50% out of sample accuracy, which is better than chance for 5 outcomes, but we can likely do better by adding some bagging to our model. We'll go with a random forest approach, which will take care of bagging for us. 
+
+```{r cache=TRUE}
+suppressWarnings(library(randomForest))
+rfMod <- randomForest(classe~.,data=training)
+confusionMatrix(validation$classe,predict(rfMod,validation))
+```
+
+As we can see, we get over 99% accuracy when applying this model to our validation set. This looks pretty good, but perhaps we could do a little better. Let's try fitting a model using a support vector machine and see how that compares. 
+
+```{r cache = TRUE}
+suppressWarnings(library(e1071))
+svmMod <- svm(classe~.,data=training)
+confusionMatrix(validation$classe,predict(svmMod,validation))
+```
+
+This is still pretty good, but not quite as good as our random forest. There are a variety of different things we could try as well, namely boosting, but it's quite computationally intensive and our random forest already does pretty well. Instead, let's see if putting the random forest together with the support vector machine results in an improvement. We'll use another random forest to do this
+
+```{r cache = TRUE}
+predDF <- data.frame(pred1 = predict(rfMod,validation),pred2 = predict(svmMod,validation),classe=validation$classe)
+aggMod <- randomForest(classe~.,data=predDF)
+confusionMatrix(validation$classe,predict(aggMod,predDF))
+```
+
+This looks only a bit more accurate than the original random forest and given that it's more complex and less interpretable, this is really an inferior model to the random forest. The random forest itself isn't as interpretable as the initial tree, but it's much better as a classifier. Based upon our investigation to this point, the random forest model does an excellent job as a classifier here. 
+
+
+## Final Model Selection
+
+The random forest model achieves the highest predicted out of sample error, with an estimate of 99.5% accuracy, while being more interpretable than an ensemble model. Thus, it is our choice as the classifier for these data. As a final measure, we can use it to predict the testing set of 20 observations that we have held out:
+
+```{r cache = TRUE}
+predict(rfMod,testing)
+```
+
+\pagebreak
+
+# Appendix
+
+Code and results for summarizing the two datasets:
+
+```{r cache=TRUE}
+summary(testing)
+```
